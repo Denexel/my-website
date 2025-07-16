@@ -41,7 +41,7 @@
         // Загружает все брони с сервера
         async function loadBookings() {
           try {
-            const response = await fetch('my-website-azr4g6c2p-obrazcovdanil44-2062s-projects.vercel.app/api/bookings')
+            const response = await fetch('https://my-website-azr4g6c2p-obrazcovdanil44-2062s-projects.vercel.app/api/bookings')
   .then(response => response.json())
   .then(data => console.log(data));
             if (!response.ok) throw new Error("Ошибка загрузки");
@@ -56,7 +56,7 @@
         async function deleteBooking(id) {
   try {
     const response = await fetch(
-      `my-website-azr4g6c2p-obrazcovdanil44-2062s-projects.vercel.app/api/bookings/${id}`, 
+      `https://my-website-azr4g6c2p-obrazcovdanil44-2062s-projects.vercel.app/api/bookings/${id}`, 
       { 
         method: 'DELETE' 
       }
