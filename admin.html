@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админка | Бронирование столиков</title>
+    <style>
+        body { background: #f1faee; font-family: 'Segoe UI', sans-serif; color: #222; }
+        .admin-container { max-width: 400px; margin: 60px auto; background: #fff; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.07); padding: 30px; }
+        h2 { text-align: center; margin-bottom: 20px; }
+        .table-admin { margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
+        .remove-btn { background: #e63946; color: #fff; border: none; border-radius: 5px; padding: 6px 14px; cursor: pointer; }
+        .remove-btn:disabled { background: #ccc; }
+        .hidden { display: none; }
+        input[type="password"] { width: 100%; padding: 8px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; }
+        button[type="submit"] { width: 100%; background: #1d3557; color: #fff; border: none; border-radius: 5px; padding: 10px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div id="login-form">
+            <h2>Вход для администратора</h2>
+            <form>
+                <input type="password" id="admin-pass" placeholder="Пароль">
+                <button type="submit">Войти</button>
+            </form>
+            <div id="login-error" style="color:#e63946; display:none; margin-top:10px;">Неверный пароль</div>
+        </div>
+        <div id="admin-panel" class="hidden">
+            <h2>Управление бронями</h2>
+            <div id="tables-list"></div>
+        </div>
+    </div>
+    <script>
+        const PASSWORD = "1234"; // Ваш пароль от админки
+        const TABLES = [ // Список всех столиков
+          { id: 1, name: "Столик 1", type: "VIP-зона" },
+          { id: 2, name: "Столик 2", type: "VIP-зона" },
+          { id: 3, name: "Столик 3", type: "VIP-зона" }
+        ];
+        
+        // Загружает все брони с сервера
+        async function loadBookings() {
+          try {
+            const response = await fetch('/api/bookings');
+            if (!response.ok) throw new Error("Ошибка загрузки");
+            return await response.json();
+          } catch (err) {
+            console.error("Ошибка:", err);
+            return [];
+          }
+        }
+        
+        // Удаляет бронь
+        async function deleteBooking(id) {
+          try {
+            const response = await fetch(`/api/bookings/${id}`, { method: 'DELETE' });
+            return response.ok;
+          } catch (err) {
+            console.error("Ошибка удаления:", err);
+            return false;
+          }
+        }
+        
+        // Показывает все столики (свободные и занятые)
+        async function renderTables() {
+  const bookings = await loadBookings();
+  const list = document.getElementById('tables-list');
+  list.innerHTML = '';
+
+  TABLES.forEach(table => {
+    const booking = bookings.find(b => b.table_id == table.id);
+    const div = document.createElement('div');
+    div.className = 'table-admin';
+    
+    if (booking) {
+      // Форматируем дату и время
+      const bookingDate = new Date(booking.booking_date).toLocaleDateString('ru-RU');
+      const bookingTime = booking.booking_time.split(':').slice(0, 2).join(':');
+      
+      // Столик забронирован
+      div.innerHTML = `
+        <span>${table.name} (${table.type}) — <strong>Забронирован</strong> на ${bookingDate} в ${bookingTime}</span>
+        <button class="remove-btn" data-id="${booking.id}">Снять бронь</button>
+      `;
+    } else {
+      // Столик свободен
+      div.innerHTML = `
+        <span>${table.name} (${table.type}) — <strong style="color:green">Свободен</strong></span>
+        <button class="remove-btn" disabled>Нет брони</button>
+      `;
+    }
+    
+    list.appendChild(div);
+  });
+        
+          // Вешаем обработчики на кнопки удаления
+          document.querySelectorAll('.remove-btn:not(:disabled)').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              if (confirm("Снять бронь?")) {
+                const success = await deleteBooking(btn.dataset.id);
+                if (success) renderTables();
+              }
+            });
+          });
+        }
+        
+        // Вход в админку
+        document.querySelector('#login-form form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const pass = document.getElementById('admin-pass').value;
+          
+          if (pass === PASSWORD) {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('admin-panel').classList.remove('hidden');
+            await renderTables(); // Первая загрузка
+            setInterval(renderTables, 5000); // Обновление каждые 5 сек
+          } else {
+            document.getElementById('login-error').style.display = 'block';
+          }
+        });
+        </script>
+</body>
+</html>
